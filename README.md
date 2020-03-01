@@ -20,7 +20,7 @@ import (
 // Scheme - wss
 // Host - dojorena.io
 // Path - /codenjoy-contest/ws
-// Query - user=793wvxskw5j1spo4mn1z&code=531959653618856800&gameName=bomberman
+// Query - user=793wvxsasdfasdfas1z&code=53193242346800&gameName=bomberman
 
 func main() {
 	// Use your URL
