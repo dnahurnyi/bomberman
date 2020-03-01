@@ -3,20 +3,22 @@ package bomberman
 import (
 	"errors"
 	"fmt"
-	"github.com/gorilla/websocket"
 	"log"
 	"net/url"
 	"os"
 	"strings"
 	"sync"
+	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 var stopPtr = STOP
 
 type board struct {
-	rawBoard string // to avoid transformation from
-	boardContent       []rune
-	command        *Action
+	rawBoard     string // to avoid transformation from
+	boardContent []rune
+	command      *Action
 	sync.Mutex
 }
 
@@ -27,9 +29,10 @@ type Game interface {
 }
 
 const (
-	gamePath = "/codenjoy-contest/ws"
+	gamePath          = "/codenjoy-contest/ws"
 	gameQueryTemplate = "user=%s&code=%s&gameName=bomberman"
 )
+
 // It's var for testing purposes
 var gameProtocol = "wss"
 
@@ -60,7 +63,7 @@ func (b *board) getAction() Action {
 	b.Lock()
 	defer b.Unlock()
 	// Every time we clean next command
-	defer func(){
+	defer func() {
 		b.command = &stopPtr
 	}()
 	if b.command == nil {
@@ -72,7 +75,7 @@ func (b *board) getAction() Action {
 func updateBoard(msg string, b *board) error {
 	boardContent := strings.Replace(msg, "board=", "", 1)
 	if len([]rune(boardContent)) != BoardSize*BoardSize {
-		return errors.New("Invalid input, board size is not valid, input msg: "+msg)
+		return errors.New("Invalid input, board size is not valid, input msg: " + msg)
 	}
 	b.rawBoard = boardContent
 	b.boardContent = []rune(boardContent)
@@ -96,9 +99,9 @@ func createURL(browserURL string) (url.URL, error) {
 	if len(envHost) != 0 && len(envPlayer) != 0 && len(envCode) != 0 {
 		log.Println("Took HOST, PLAYER and CODE values from environment")
 		return url.URL{
-			Scheme: gameProtocol,
-			Host: envHost,
-			Path: gamePath,
+			Scheme:   gameProtocol,
+			Host:     envHost,
+			Path:     gamePath,
 			RawQuery: fmt.Sprintf(gameQueryTemplate, envPlayer, envCode),
 		}, nil
 	} else {
@@ -117,7 +120,7 @@ func createURL(browserURL string) (url.URL, error) {
 	mutatedUrl := strings.Replace(browserURL, "https://", "", 1)
 	urlParts := strings.Split(mutatedUrl, "/")
 	if len(urlParts) != 5 {
-		return url.URL{}, errors.New("Invalid URL, can't get host name, url: "+ browserURL)
+		return url.URL{}, errors.New("Invalid URL, can't get host name, url: " + browserURL)
 	}
 	host := urlParts[0]
 
@@ -125,7 +128,7 @@ func createURL(browserURL string) (url.URL, error) {
 	mutatedUrl = strings.Replace(mutatedUrl, host+"/codenjoy-contest/board/player/", "", 1)
 	urlParts = strings.Split(mutatedUrl, "?")
 	if len(urlParts) != 2 {
-		return url.URL{}, errors.New("Invalid URL, can't get player ID, url: "+ browserURL)
+		return url.URL{}, errors.New("Invalid URL, can't get player ID, url: " + browserURL)
 	}
 	player := urlParts[0]
 
@@ -133,14 +136,14 @@ func createURL(browserURL string) (url.URL, error) {
 	mutatedUrl = strings.Replace(mutatedUrl, player+"?code=", "", 1)
 	urlParts = strings.Split(mutatedUrl, "&")
 	if len(urlParts) != 2 {
-		return url.URL{}, errors.New("Invalid URL, can't get game code, url: "+ browserURL)
+		return url.URL{}, errors.New("Invalid URL, can't get game code, url: " + browserURL)
 	}
 	code := urlParts[0]
 
 	u := url.URL{
-		Scheme: gameProtocol,
-		Host: host,
-		Path: gamePath,
+		Scheme:   gameProtocol,
+		Host:     host,
+		Path:     gamePath,
 		RawQuery: fmt.Sprintf(gameQueryTemplate, player, code),
 	}
 	return u, nil
@@ -167,6 +170,7 @@ func readWriteSocket(brd *board, conn *websocket.Conn, done chan struct{}) {
 				close(done)
 				return
 			}
+			time.Sleep(time.Millisecond * 500) // 0.5 second to think what to respond
 			move := brd.getAction()
 			if err := conn.WriteMessage(websocket.TextMessage, []byte(move)); err != nil {
 				log.Println("Failed to write command to the game server, err: ", err)
@@ -198,4 +202,3 @@ func StartGame(browserURL string) (Game, chan struct{}) {
 
 	return brd, done
 }
-
