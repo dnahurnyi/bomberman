@@ -1,10 +1,8 @@
-package client
+package bomberman
 
 import (
 	"errors"
 	"fmt"
-	"github.com/gorilla/websocket"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -12,11 +10,14 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
-	testValidBoard = "☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼ #        ####  # #&########♠ #☼☼ ☼ ☼#☼#☼ ☼ ☼ ☼#☼#☼ ☼ ☼#☼ ☼ ☼ ☼ ☼☼  # # #  ♠ ##    # ####  ☻    #☼☼☺☼#☼♥☼ ☼ ☼ ☼ ☼ ☼#☼ ☼ ☼ ☼ ☼ ☼ ☼#☼☼# ####          ♥   # #   ## ##☼☼ ☼#☼#☼#☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼#☼ ☼ ☼ ☼ ☼☼#  ###  #             ## #   ##☼☼♥☼#☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼#☼ ☼☼##                    3       #☼☼ ☼ ☼#☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼#☼ ☼ ☼ ☼ ☼☼  #  #                         ☼☼#☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼☼##                       #     ☼☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼☼                           #   ☼☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼#☼ ☼ ☼ ☼☼ #                #      #     ☼☼ ☼ ☼ ☼ ☼ ☼#☼ ☼ ☼ ☼ ☼&☼#☼ ☼#☼ ☼ ☼☼&#    #     #                  ☼☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼☼   &                     #     ☼☼#☼#☼#☼ ☼ ☼ ☼ ☼ ☼#☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼☼ #        #               &    ☼☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼#☼ ☼ ☼#☼ ☼ ☼ ☼ ☼☼     #                &        ☼☼ ☼ ☼ ☼#☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼☼  # &                    #     ☼☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼#☼ ☼ ☼#☼☼ # #         #                 ☼☼#☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼#☼ ☼&☼#☼ ☼ ☼#☼☼    &  #&          ♥        #  ☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼"
-	testValidMsg = "board="+testValidBoard
+	testValidBoard           = "☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼ #        ####  # #&########♠ #☼☼ ☼ ☼#☼#☼ ☼ ☼ ☼#☼#☼ ☼ ☼#☼ ☼ ☼ ☼ ☼☼  # # #  ♠ ##    # ####  ☻    #☼☼☺☼#☼♥☼ ☼ ☼ ☼ ☼ ☼#☼ ☼ ☼ ☼ ☼ ☼ ☼#☼☼# ####          ♥   # #   ## ##☼☼ ☼#☼#☼#☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼#☼ ☼ ☼ ☼ ☼☼#  ###  #             ## #   ##☼☼♥☼#☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼#☼ ☼☼##                    3       #☼☼ ☼ ☼#☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼#☼ ☼ ☼ ☼ ☼☼  #  #                         ☼☼#☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼☼##                       #     ☼☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼☼                           #   ☼☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼#☼ ☼ ☼ ☼☼ #                #      #     ☼☼ ☼ ☼ ☼ ☼ ☼#☼ ☼ ☼ ☼ ☼&☼#☼ ☼#☼ ☼ ☼☼&#    #     #                  ☼☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼☼   &                     #     ☼☼#☼#☼#☼ ☼ ☼ ☼ ☼ ☼#☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼☼ #        #               &    ☼☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼#☼ ☼ ☼#☼ ☼ ☼ ☼ ☼☼     #                &        ☼☼ ☼ ☼ ☼#☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼☼  # &                    #     ☼☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼#☼ ☼ ☼#☼☼ # #         #                 ☼☼#☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼ ☼#☼ ☼&☼#☼ ☼ ☼#☼☼    &  #&          ♥        #  ☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼"
+	testValidMsg             = "board=" + testValidBoard
 	testValidStructuredBoard = `☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼
 ☼ #        ####  # #&########♠ #☼
 ☼ ☼ ☼#☼#☼ ☼ ☼ ☼#☼#☼ ☼ ☼#☼ ☼ ☼ ☼ ☼
@@ -55,21 +56,21 @@ const (
 
 func Test_createURL(t *testing.T) {
 	type tstruct struct {
-		name string
-		browserUrl string
-		expectedURL url.URL
+		name          string
+		browserUrl    string
+		expectedURL   url.URL
 		expectedError error
-		setEnv func()
+		setEnv        func()
 	}
 
 	tests := []tstruct{
 		{
-			name: "Success, user input",
+			name:       "Success, user input",
 			browserUrl: "https://dojorena.io/codenjoy-contest/board/player/793wdxskw521spo4mn1y?code=531459153668826800&gameName=bomberman",
 			expectedURL: url.URL{
-				Scheme: gameProtocol,
-				Host: "dojorena.io",
-				Path: gamePath,
+				Scheme:   gameProtocol,
+				Host:     "dojorena.io",
+				Path:     gamePath,
 				RawQuery: fmt.Sprintf(gameQueryTemplate, "793wdxskw521spo4mn1y", "531459153668826800"),
 			},
 			expectedError: nil,
@@ -77,12 +78,12 @@ func Test_createURL(t *testing.T) {
 				// Don't set any variable
 			},
 		}, {
-			name: "Success, get from env",
+			name:       "Success, get from env",
 			browserUrl: "",
 			expectedURL: url.URL{
-				Scheme: gameProtocol,
-				Host: "dojorena.io",
-				Path: gamePath,
+				Scheme:   gameProtocol,
+				Host:     "dojorena.io",
+				Path:     gamePath,
 				RawQuery: fmt.Sprintf(gameQueryTemplate, "793wdxskw521spo4mn1y", "531459153668826800"),
 			},
 			expectedError: nil,
@@ -92,28 +93,28 @@ func Test_createURL(t *testing.T) {
 				os.Setenv("CODE", "531459153668826800")
 			},
 		}, {
-			name: "Invalid host",
-			browserUrl: "dojorena.iocodenjoy-contest/board/player/793wdxskw521spo4mn1y?code=531459153668826800&gameName=bomberman",
-			expectedURL: url.URL{},
-			expectedError: errors.New("Invalid URL, can't get host name, url: "+"dojorena.iocodenjoy-contest/board/player/793wdxskw521spo4mn1y?code=531459153668826800&gameName=bomberman"),
-			setEnv: func() {},
+			name:          "Invalid host",
+			browserUrl:    "dojorena.iocodenjoy-contest/board/player/793wdxskw521spo4mn1y?code=531459153668826800&gameName=bomberman",
+			expectedURL:   url.URL{},
+			expectedError: errors.New("Invalid URL, can't get host name, url: " + "dojorena.iocodenjoy-contest/board/player/793wdxskw521spo4mn1y?code=531459153668826800&gameName=bomberman"),
+			setEnv:        func() {},
 		}, {
-			name: "Invalid player ID",
-			browserUrl: "https://dojorena.io/codenjoy-contest/board/player/793wdxskw521spo4mn1ycode=531459153668826800&gameName=bomberman",
-			expectedURL: url.URL{},
-			expectedError: errors.New("Invalid URL, can't get player ID, url: "+"https://dojorena.io/codenjoy-contest/board/player/793wdxskw521spo4mn1ycode=531459153668826800&gameName=bomberman"),
-			setEnv: func() {},
+			name:          "Invalid player ID",
+			browserUrl:    "https://dojorena.io/codenjoy-contest/board/player/793wdxskw521spo4mn1ycode=531459153668826800&gameName=bomberman",
+			expectedURL:   url.URL{},
+			expectedError: errors.New("Invalid URL, can't get player ID, url: " + "https://dojorena.io/codenjoy-contest/board/player/793wdxskw521spo4mn1ycode=531459153668826800&gameName=bomberman"),
+			setEnv:        func() {},
 		}, {
-			name: "Invalid game code",
-			browserUrl: "https://dojorena.io/codenjoy-contest/board/player/793wdxskw521spo4mn1y?code=531459153668826800gameName=bomberman",
-			expectedURL: url.URL{},
-			expectedError: errors.New("Invalid URL, can't get game code, url: "+"https://dojorena.io/codenjoy-contest/board/player/793wdxskw521spo4mn1y?code=531459153668826800gameName=bomberman"),
-			setEnv: func() {},
+			name:          "Invalid game code",
+			browserUrl:    "https://dojorena.io/codenjoy-contest/board/player/793wdxskw521spo4mn1y?code=531459153668826800gameName=bomberman",
+			expectedURL:   url.URL{},
+			expectedError: errors.New("Invalid URL, can't get game code, url: " + "https://dojorena.io/codenjoy-contest/board/player/793wdxskw521spo4mn1y?code=531459153668826800gameName=bomberman"),
+			setEnv:        func() {},
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			os.Clearenv()
 			tt.setEnv()
 			url, err := createURL(tt.browserUrl)
@@ -125,39 +126,39 @@ func Test_createURL(t *testing.T) {
 
 func Test_updateBoard(t *testing.T) {
 	type tstruct struct {
-		name string
-		msg string
-		board *board
-		resBoard *board
+		name        string
+		msg         string
+		board       *board
+		resBoard    *board
 		expectedErr error
 	}
 
 	tests := []tstruct{
 		{
-			name: "Successful update",
-			msg: testValidMsg,
+			name:  "Successful update",
+			msg:   testValidMsg,
 			board: &board{},
 			resBoard: &board{
 				rawBoard: testValidBoard,
 			},
 			expectedErr: nil,
 		}, {
-			name: "Invalid message",
-			msg: "Invalid message",
-			board: &board{},
-			resBoard: &board{},
-			expectedErr: errors.New("Invalid input, board size is not valid, input msg: "+"Invalid message"),
+			name:        "Invalid message",
+			msg:         "Invalid message",
+			board:       &board{},
+			resBoard:    &board{},
+			expectedErr: errors.New("Invalid input, board size is not valid, input msg: " + "Invalid message"),
 		}, {
-			name: "Empty message",
-			msg: "",
-			board: &board{},
-			resBoard: &board{},
+			name:        "Empty message",
+			msg:         "",
+			board:       &board{},
+			resBoard:    &board{},
 			expectedErr: errors.New("Invalid input, board size is not valid, input msg: "),
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			err := updateBoard(tt.msg, tt.board)
 			assert.Equal(t, tt.expectedErr, err)
 			assert.Equal(t, tt.resBoard.rawBoard, tt.board.rawBoard)
@@ -167,15 +168,15 @@ func Test_updateBoard(t *testing.T) {
 
 func Test_readWriteSocket(t *testing.T) {
 	type tstruct struct {
-		name string
-		board *board
+		name        string
+		board       *board
 		rawBoardRes string
-		server func(response string, done chan struct{}) func (w http.ResponseWriter, r *http.Request)
-		async bool
+		server      func(response string, done chan struct{}) func(w http.ResponseWriter, r *http.Request)
+		async       bool
 	}
 
-	workingServer := func(response string, done chan struct{}) func (w http.ResponseWriter, r *http.Request){
-		return func (w http.ResponseWriter, r *http.Request) {
+	workingServer := func(response string, done chan struct{}) func(w http.ResponseWriter, r *http.Request) {
+		return func(w http.ResponseWriter, r *http.Request) {
 			upgrader := websocket.Upgrader{}
 			c, err := upgrader.Upgrade(w, r, nil)
 			if err != nil {
@@ -202,8 +203,8 @@ func Test_readWriteSocket(t *testing.T) {
 			}
 		}
 	}
-	brokenServer := func(response string, done chan struct{}) func (w http.ResponseWriter, r *http.Request){
-		return func (w http.ResponseWriter, r *http.Request) {
+	brokenServer := func(response string, done chan struct{}) func(w http.ResponseWriter, r *http.Request) {
+		return func(w http.ResponseWriter, r *http.Request) {
 			upgrader := websocket.Upgrader{}
 			c, err := upgrader.Upgrade(w, r, nil)
 			if err != nil {
@@ -215,8 +216,8 @@ func Test_readWriteSocket(t *testing.T) {
 			return
 		}
 	}
-	badDataServer := func(response string, done chan struct{}) func (w http.ResponseWriter, r *http.Request){
-		return func (w http.ResponseWriter, r *http.Request) {
+	badDataServer := func(response string, done chan struct{}) func(w http.ResponseWriter, r *http.Request) {
+		return func(w http.ResponseWriter, r *http.Request) {
 			upgrader := websocket.Upgrader{}
 			c, err := upgrader.Upgrade(w, r, nil)
 			if err != nil {
@@ -239,30 +240,29 @@ func Test_readWriteSocket(t *testing.T) {
 
 	tests := []tstruct{
 		{
-			name: "Successful board update",
-			board: &board{},
+			name:        "Successful board update",
+			board:       &board{},
 			rawBoardRes: testValidBoard,
-			server: workingServer,
-			async: true,
+			server:      workingServer,
+			async:       true,
 		}, {
-			name: "Server is down",
-			board: &board{},
+			name:        "Server is down",
+			board:       &board{},
 			rawBoardRes: "",
-			server: brokenServer,
-			async: false,
+			server:      brokenServer,
+			async:       false,
 		},
 		{
-			name: "Server returns bad data",
-			board: &board{},
+			name:        "Server returns bad data",
+			board:       &board{},
 			rawBoardRes: "",
-			server: badDataServer,
-			async: false,
+			server:      badDataServer,
+			async:       false,
 		},
 	}
 
-
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			// Start mock server
 			readyToCheck := make(chan struct{})
 			server := httptest.NewServer(http.HandlerFunc(tt.server(testValidMsg, readyToCheck)))
@@ -280,8 +280,8 @@ func Test_readWriteSocket(t *testing.T) {
 					done <- struct{}{}
 				}()
 				go readWriteSocket(tt.board, conn, done)
-				<- readyToCheck
-			// In sync case we run readWriteSocket synchronously and don't need to use extra mechanisms
+				<-readyToCheck
+				// In sync case we run readWriteSocket synchronously and don't need to use extra mechanisms
 			} else {
 				readWriteSocket(tt.board, conn, done)
 			}
@@ -293,16 +293,16 @@ func Test_readWriteSocket(t *testing.T) {
 
 func Test_StartGame(t *testing.T) {
 	type tstruct struct {
-		name string
-		browserUrl string
+		name                string
+		browserUrl          string
 		boardRepresentation string
-		server func(response string, done chan struct{}) func (w http.ResponseWriter, r *http.Request)
-		async bool
-		panicValue string
+		server              func(response string, done chan struct{}) func(w http.ResponseWriter, r *http.Request)
+		async               bool
+		panicValue          string
 	}
 
-	workingServer := func(response string, done chan struct{}) func (w http.ResponseWriter, r *http.Request){
-		return func (w http.ResponseWriter, r *http.Request) {
+	workingServer := func(response string, done chan struct{}) func(w http.ResponseWriter, r *http.Request) {
+		return func(w http.ResponseWriter, r *http.Request) {
 			upgrader := websocket.Upgrader{}
 			c, err := upgrader.Upgrade(w, r, nil)
 			if err != nil {
@@ -319,7 +319,7 @@ func Test_StartGame(t *testing.T) {
 
 				_, msg, err := c.ReadMessage()
 				if len(msg) != 0 {
-					switch(Action(msg)) {
+					switch Action(msg) {
 					case ACT:
 						response = strings.Replace(response, string(BOMBERMAN), string(BOMB_BOMBERMAN), 1)
 					}
@@ -338,27 +338,26 @@ func Test_StartGame(t *testing.T) {
 
 	tests := []tstruct{
 		{
-			name: "Successful board update",
-			browserUrl: "https://{serverHostname}/codenjoy-contest/board/player/793wdxskw521spo4mn1y?code=531459153668826800&gameName=bomberman",
-			async: true,
-			server: workingServer,
+			name:                "Successful board update",
+			browserUrl:          "https://{serverHostname}/codenjoy-contest/board/player/793wdxskw521spo4mn1y?code=531459153668826800&gameName=bomberman",
+			async:               true,
+			server:              workingServer,
 			boardRepresentation: testValidStructuredBoard,
 		}, {
-			name: "Invalid URL",
+			name:       "Invalid URL",
 			browserUrl: "",
-			async: false,
+			async:      false,
 			panicValue: "Failed to create valid game url, err:  Invalid URL, can't get host name, url: \n",
 		}, {
-			name: "Can't create connection",
+			name:       "Can't create connection",
 			browserUrl: "https://127.0.0.1/codenjoy-contest/board/player/793wdxskw521spo4mn1y?code=531459153668826800&gameName=bomberman",
-			async: false,
+			async:      false,
 			panicValue: "Failed to create connection to game, err:  dial tcp 127.0.0.1:80: connect: connection refused\n",
 		},
 	}
 
-
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			readyToCheck := make(chan struct{})
 			if tt.server != nil {
 				gameProtocol = "ws"
@@ -382,10 +381,10 @@ func Test_StartGame(t *testing.T) {
 				<-readyToCheck
 				assert.Equal(t, tt.boardRepresentation, game.Show())
 				game.Move(ACT)
-				time.Sleep(time.Second*1)
+				time.Sleep(time.Second * 1)
 				assert.NotEqual(t, tt.boardRepresentation, game.Show()) // bomberman changed to bomb
 			} else {
-				assert.PanicsWithValue(t, tt.panicValue, func(){StartGame(tt.browserUrl)})
+				assert.PanicsWithValue(t, tt.panicValue, func() { StartGame(tt.browserUrl) })
 			}
 		})
 	}
@@ -393,37 +392,37 @@ func Test_StartGame(t *testing.T) {
 
 func Test_Move(t *testing.T) {
 	type tstruct struct {
-		name string
-		board *board
-		command Action // Resulting move
-		moves []Action // List of moves asked to do
+		name        string
+		board       *board
+		command     Action   // Resulting move
+		moves       []Action // List of moves asked to do
 		expectedErr error
 	}
 
 	tests := []tstruct{
 		{
-			name: "One move",
-			board: &board{},
-			moves: []Action{ACT},
-			command: ACT,
+			name:        "One move",
+			board:       &board{},
+			moves:       []Action{ACT},
+			command:     ACT,
 			expectedErr: nil,
 		}, {
-			name: "List of moves",
-			board: &board{},
-			moves: []Action{UP, DOWN, ACT},
-			command: ACT,
+			name:        "List of moves",
+			board:       &board{},
+			moves:       []Action{UP, DOWN, ACT},
+			command:     ACT,
 			expectedErr: nil,
 		}, {
-			name: "Invalid move",
-			board: &board{},
-			moves: []Action{"invalid"},
-			command: STOP,
+			name:        "Invalid move",
+			board:       &board{},
+			moves:       []Action{"invalid"},
+			command:     STOP,
 			expectedErr: nil,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			for _, m := range tt.moves {
 				tt.board.Move(m)
 			}

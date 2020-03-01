@@ -1,4 +1,4 @@
-module github.com/dnahurnyi/bomberman-client
+module github.com/dnahurnyi/bomberman
 
 go 1.13
 

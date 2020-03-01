@@ -1,16 +1,17 @@
-package client
+package bomberman
 
 import (
-	"github.com/stretchr/testify/assert"
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_GetBomberman(t *testing.T) {
 	type tstruct struct {
-		name string
-		board *board
+		name          string
+		board         *board
 		expectedPoint Point
 	}
 
@@ -25,17 +26,16 @@ func Test_GetBomberman(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.expectedPoint, tt.board.GetBomberman())
 		})
 	}
 }
 
-
 func Test_GetOtherBombermans(t *testing.T) {
 	type tstruct struct {
-		name string
-		board *board
+		name           string
+		board          *board
 		expectedPoints []Point
 	}
 
@@ -50,7 +50,7 @@ func Test_GetOtherBombermans(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.expectedPoints, tt.board.GetOtherBombermans())
 		})
 	}
@@ -58,8 +58,8 @@ func Test_GetOtherBombermans(t *testing.T) {
 
 func Test_IsMyBombermanDead(t *testing.T) {
 	type tstruct struct {
-		name string
-		board *board
+		name   string
+		board  *board
 		isDead bool
 	}
 
@@ -80,7 +80,7 @@ func Test_IsMyBombermanDead(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.isDead, tt.board.IsMyBombermanDead())
 		})
 	}
@@ -88,11 +88,11 @@ func Test_IsMyBombermanDead(t *testing.T) {
 
 func Test_IsAt(t *testing.T) {
 	type tstruct struct {
-		name string
-		board *board
-		point Point
+		name    string
+		board   *board
+		point   Point
 		element Element
-		result bool
+		result  bool
 	}
 
 	tests := []tstruct{
@@ -101,30 +101,30 @@ func Test_IsAt(t *testing.T) {
 			board: &board{
 				boardContent: []rune(testValidBoard),
 			},
-			point: Point{0, 0},
+			point:   Point{0, 0},
 			element: WALL,
-			result: true,
+			result:  true,
 		}, {
 			name: "Other bomberman",
 			board: &board{
 				boardContent: []rune(testValidBoard),
 			},
-			point: Point{1, 24},
+			point:   Point{1, 24},
 			element: OTHER_BOMBERMAN,
-			result: true,
+			result:  true,
 		}, {
 			name: "Wrong wall",
 			board: &board{
 				boardContent: []rune(testValidBoard),
 			},
-			point: Point{1, 1},
+			point:   Point{1, 1},
 			element: WALL,
-			result: false,
+			result:  false,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.result, tt.board.IsAt(tt.point, tt.element))
 		})
 	}
@@ -132,11 +132,11 @@ func Test_IsAt(t *testing.T) {
 
 func Test_IsAtAny(t *testing.T) {
 	type tstruct struct {
-		name string
-		board *board
-		point Point
+		name     string
+		board    *board
+		point    Point
 		elements []Element
-		result bool
+		result   bool
 	}
 
 	tests := []tstruct{
@@ -145,30 +145,30 @@ func Test_IsAtAny(t *testing.T) {
 			board: &board{
 				boardContent: []rune(testValidBoard),
 			},
-			point: Point{5, 1},
+			point:    Point{5, 1},
 			elements: []Element{NONE, WALL},
-			result: false,
+			result:   false,
 		}, {
 			name: "Set #2",
 			board: &board{
 				boardContent: []rune(testValidBoard),
 			},
-			point: Point{1, 2},
+			point:    Point{1, 2},
 			elements: []Element{DESTROYABLE_WALL},
-			result: true,
-		},  {
+			result:   true,
+		}, {
 			name: "Set #3",
 			board: &board{
 				boardContent: []rune(testValidBoard),
 			},
-			point: Point{20, 1},
+			point:    Point{20, 1},
 			elements: []Element{BOMBERMAN, BOMB_BOMBERMAN, DEAD_BOMBERMAN, OTHER_BOMBERMAN},
-			result: true,
+			result:   true,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.result, tt.board.IsAtAny(tt.point, tt.elements))
 		})
 	}
@@ -176,11 +176,11 @@ func Test_IsAtAny(t *testing.T) {
 
 func Test_IsNear(t *testing.T) {
 	type tstruct struct {
-		name string
-		board *board
-		point Point
+		name    string
+		board   *board
+		point   Point
 		element Element
-		result bool
+		result  bool
 	}
 
 	tests := []tstruct{
@@ -189,22 +189,22 @@ func Test_IsNear(t *testing.T) {
 			board: &board{
 				boardContent: []rune(testValidBoard),
 			},
-			point: Point{1, 1},
+			point:   Point{1, 1},
 			element: WALL,
-			result: true,
+			result:  true,
 		}, {
 			name: "Other bomberman",
 			board: &board{
 				boardContent: []rune(testValidBoard),
 			},
-			point: Point{1, 28},
+			point:   Point{1, 28},
 			element: DESTROYABLE_WALL,
-			result: true,
+			result:  true,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.result, tt.board.IsNear(tt.point, tt.element))
 		})
 	}
@@ -212,9 +212,9 @@ func Test_IsNear(t *testing.T) {
 
 func Test_IsBarrierAt(t *testing.T) {
 	type tstruct struct {
-		name string
-		board *board
-		point Point
+		name   string
+		board  *board
+		point  Point
 		result bool
 	}
 
@@ -224,27 +224,27 @@ func Test_IsBarrierAt(t *testing.T) {
 			board: &board{
 				boardContent: []rune(testValidBoard),
 			},
-			point: Point{1, 27},
+			point:  Point{1, 27},
 			result: true,
 		}, {
 			name: "None above the bomberman",
 			board: &board{
 				boardContent: []rune(testValidBoard),
 			},
-			point: Point{1, 29},
+			point:  Point{1, 29},
 			result: false,
-		},  {
+		}, {
 			name: "Wall to the right of bomberman",
 			board: &board{
 				boardContent: []rune(testValidBoard),
 			},
-			point: Point{2, 28},
+			point:  Point{2, 28},
 			result: true,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.result, tt.board.IsBarrierAt(tt.point))
 		})
 	}
@@ -252,11 +252,11 @@ func Test_IsBarrierAt(t *testing.T) {
 
 func Test_CountNear(t *testing.T) {
 	type tstruct struct {
-		name string
-		board *board
-		point Point
+		name    string
+		board   *board
+		point   Point
 		element Element
-		count int
+		count   int
 	}
 
 	tests := []tstruct{
@@ -265,22 +265,22 @@ func Test_CountNear(t *testing.T) {
 			board: &board{
 				boardContent: []rune(testValidBoard),
 			},
-			point: Point{1, 1},
+			point:   Point{1, 1},
 			element: WALL,
-			count: 2,
+			count:   2,
 		}, {
 			name: "Other bomberman",
 			board: &board{
 				boardContent: []rune(testValidBoard),
 			},
-			point: Point{1, 28},
+			point:   Point{1, 28},
 			element: DESTROYABLE_WALL,
-			count: 1,
+			count:   1,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.count, tt.board.CountNear(tt.point, tt.element))
 		})
 	}
@@ -288,9 +288,9 @@ func Test_CountNear(t *testing.T) {
 
 func Test_GetAt(t *testing.T) {
 	type tstruct struct {
-		name string
-		board *board
-		point Point
+		name    string
+		board   *board
+		point   Point
 		element Element
 	}
 
@@ -300,27 +300,27 @@ func Test_GetAt(t *testing.T) {
 			board: &board{
 				boardContent: []rune(testValidBoard),
 			},
-			point: Point{1, 1},
+			point:   Point{1, 1},
 			element: NONE,
 		}, {
 			name: "Wall under me",
 			board: &board{
 				boardContent: []rune(testValidBoard),
 			},
-			point: Point{1, 27},
+			point:   Point{1, 27},
 			element: DESTROYABLE_WALL,
 		}, {
 			name: "Bomberman",
 			board: &board{
 				boardContent: []rune(testValidBoard),
 			},
-			point: Point{1, 28},
+			point:   Point{1, 28},
 			element: BOMBERMAN,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.element, tt.board.GetAt(tt.point))
 		})
 	}
@@ -328,9 +328,9 @@ func Test_GetAt(t *testing.T) {
 
 func Test_GetBarriers(t *testing.T) {
 	type tstruct struct {
-		name string
-		board *board
-		points []Point
+		name    string
+		board   *board
+		points  []Point
 		element Element
 	}
 
@@ -347,7 +347,7 @@ func Test_GetBarriers(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.points, tt.board.GetBarriers())
 		})
 	}
@@ -355,8 +355,8 @@ func Test_GetBarriers(t *testing.T) {
 
 func Test_GetMeatChoppers(t *testing.T) {
 	type tstruct struct {
-		name string
-		board *board
+		name     string
+		board    *board
 		choppers []Point
 	}
 
@@ -371,7 +371,7 @@ func Test_GetMeatChoppers(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.choppers, tt.board.GetMeatChoppers())
 		})
 	}
@@ -379,8 +379,8 @@ func Test_GetMeatChoppers(t *testing.T) {
 
 func Test_GetWalls(t *testing.T) {
 	type tstruct struct {
-		name string
-		board *board
+		name     string
+		board    *board
 		choppers []Point
 	}
 
@@ -395,7 +395,7 @@ func Test_GetWalls(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.choppers, tt.board.GetWalls())
 		})
 	}
@@ -403,8 +403,8 @@ func Test_GetWalls(t *testing.T) {
 
 func Test_GetDestroyableWalls(t *testing.T) {
 	type tstruct struct {
-		name string
-		board *board
+		name     string
+		board    *board
 		choppers []Point
 	}
 
@@ -419,7 +419,7 @@ func Test_GetDestroyableWalls(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.choppers, tt.board.GetDestroyableWalls())
 		})
 	}
@@ -427,8 +427,8 @@ func Test_GetDestroyableWalls(t *testing.T) {
 
 func Test_GetBombs(t *testing.T) {
 	type tstruct struct {
-		name string
-		board *board
+		name     string
+		board    *board
 		choppers []Point
 	}
 
@@ -443,7 +443,7 @@ func Test_GetBombs(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.choppers, tt.board.GetBombs())
 		})
 	}
@@ -451,8 +451,8 @@ func Test_GetBombs(t *testing.T) {
 
 func Test_GetFutureBlasts(t *testing.T) {
 	type tstruct struct {
-		name string
-		board *board
+		name   string
+		board  *board
 		blasts []Point
 	}
 
@@ -467,10 +467,10 @@ func Test_GetFutureBlasts(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name,  func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			blasts := tt.board.GetFutureBlasts()
-			sort.Slice(blasts, func(i, j int) bool { return blasts[i].X + blasts[i].Y*33 < blasts[j].X + blasts[j].Y*33 })
-			sort.Slice(tt.blasts, func(i, j int) bool { return tt.blasts[i].X + tt.blasts[i].Y*33 < tt.blasts[j].X + tt.blasts[j].Y*33 })
+			sort.Slice(blasts, func(i, j int) bool { return blasts[i].X+blasts[i].Y*33 < blasts[j].X+blasts[j].Y*33 })
+			sort.Slice(tt.blasts, func(i, j int) bool { return tt.blasts[i].X+tt.blasts[i].Y*33 < tt.blasts[j].X+tt.blasts[j].Y*33 })
 			assert.Equal(t, tt.blasts, blasts)
 		})
 	}

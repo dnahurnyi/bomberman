@@ -1,4 +1,4 @@
-package client
+package bomberman
 
 type CommonAPI interface {
 	GetBomberman() Point
@@ -47,13 +47,13 @@ func findAll(content []rune, symbol rune) []int {
 func (b *board) indexToPoint(index int) Point {
 	return Point{
 		X: index % b.boardSize(),
-		Y: b.boardSize() -1  - index / b.boardSize() , // -1 because we start from 0, not from 1
+		Y: b.boardSize() - 1 - index/b.boardSize(), // -1 because we start from 0, not from 1
 	}
 }
 
 func (b *board) pointToIndex(p Point) int {
-	index :=  (b.boardSize() - 1 - p.Y) * b.boardSize()
-	index +=  p.X
+	index := (b.boardSize() - 1 - p.Y) * b.boardSize()
+	index += p.X
 	return index
 }
 
@@ -94,10 +94,10 @@ func (b *board) IsAtAny(point Point, element []Element) bool {
 }
 
 func (b *board) IsNear(p Point, element Element) bool {
-	return b.IsAt(Point{p.X, p.Y-1}, element) ||
-		b.IsAt(Point{p.X, p.Y+1}, element) ||
-		b.IsAt(Point{p.X-1, p.Y}, element) ||
-		b.IsAt(Point{p.X+1, p.Y}, element)
+	return b.IsAt(Point{p.X, p.Y - 1}, element) ||
+		b.IsAt(Point{p.X, p.Y + 1}, element) ||
+		b.IsAt(Point{p.X - 1, p.Y}, element) ||
+		b.IsAt(Point{p.X + 1, p.Y}, element)
 }
 
 func (b *board) IsBarrierAt(point Point) bool {
@@ -110,10 +110,18 @@ func (b *board) IsBarrierAt(point Point) bool {
 
 func (b *board) CountNear(p Point, element Element) int {
 	counter := 0
-	if b.IsAt(Point{p.X, p.Y-1}, element) {counter++}
-	if b.IsAt(Point{p.X, p.Y+1}, element) {counter++}
-	if b.IsAt(Point{p.X-1, p.Y}, element) {counter++}
-	if b.IsAt(Point{p.X+1, p.Y}, element) {counter++}
+	if b.IsAt(Point{p.X, p.Y - 1}, element) {
+		counter++
+	}
+	if b.IsAt(Point{p.X, p.Y + 1}, element) {
+		counter++
+	}
+	if b.IsAt(Point{p.X - 1, p.Y}, element) {
+		counter++
+	}
+	if b.IsAt(Point{p.X + 1, p.Y}, element) {
+		counter++
+	}
 	return counter
 }
 
@@ -130,8 +138,8 @@ func (b *board) GetBarriers() []Point {
 	barrierElements := []rune{BOMB_BOMBERMAN, OTHER_BOMBERMAN, OTHER_BOMB_BOMBERMAN, OTHER_DEAD_BOMBERMAN,
 		BOMB_TIMER_5, BOMB_TIMER_4, BOMB_TIMER_3, BOMB_TIMER_2, BOMB_TIMER_1, BOOM,
 		WALL, DESTROYABLE_WALL, DESTROYED_WALL, MEAT_CHOPPER, DEAD_MEAT_CHOPPER}
-	
-	for _, barier := range barrierElements{
+
+	for _, barier := range barrierElements {
 		for _, i := range findAll(b.boardContent, barier) {
 			points = append(points, b.indexToPoint(i))
 		}
@@ -172,7 +180,7 @@ func (b *board) GetBombs() []Point {
 	barrierElements := []rune{BOMB_BOMBERMAN, OTHER_BOMB_BOMBERMAN,
 		BOMB_TIMER_5, BOMB_TIMER_4, BOMB_TIMER_3, BOMB_TIMER_2, BOMB_TIMER_1}
 
-	for _, barier := range barrierElements{
+	for _, barier := range barrierElements {
 		for _, i := range findAll(b.boardContent, barier) {
 			points = append(points, b.indexToPoint(i))
 		}
@@ -187,7 +195,7 @@ func (b *board) GetFutureBlasts() []Point {
 		BOMB_TIMER_5, BOMB_TIMER_4, BOMB_TIMER_3, BOMB_TIMER_2, BOMB_TIMER_1}
 
 	// Get all bombs
-	for _, barier := range barrierElements{
+	for _, barier := range barrierElements {
 		for _, i := range findAll(b.boardContent, barier) {
 			bombs = append(bombs, b.indexToPoint(i))
 		}
