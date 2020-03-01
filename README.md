@@ -45,6 +45,8 @@ func main() {
 			} else if char == 'q' {
 				log.Fatal("It's done")
 			}
+			// You have 0.5 second to make a move or game will think you 
+			// make a move "STOP"
 			moveAction := bomberman.Action(char)
 			switch moveAction {
 			case bomberman.Action('w'):
