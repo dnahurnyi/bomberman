@@ -1,5 +1,7 @@
-# bomberman-client
+# bomberman client
 Client for the bomberman game
+
+Check details at: https://dojorena.io/codenjoy-contest/resources/help/bomberman.html
 
 Use next code snippet to try this client with keyboard:
 ```
