@@ -48,11 +48,21 @@ const (
 	LEFT  Action = "LEFT"
 	ACT   Action = "ACT"
 	STOP  Action = "STOP"
+	// Combinations
+	UPA    Action = "UP,ACT"
+	DOWNA  Action = "DOWN,ACT"
+	RIGHTA Action = "RIGHT,ACT"
+	LEFTA  Action = "LEFT,ACT"
+	// Vice versa, order matters
+	AUP    Action = "ACT,UP"
+	ADOWN  Action = "ACT,DOWN"
+	ARIGHT Action = "ACT,RIGHT"
+	ALEFT  Action = "ACT,LEFT"
 )
 
 func (m Action) IsValid() bool {
 	switch m {
-	case UP, DOWN, RIGHT, LEFT, ACT, STOP:
+	case UP, DOWN, RIGHT, LEFT, ACT, STOP, UPA, DOWNA, RIGHTA, LEFTA, AUP, ADOWN, ARIGHT, ALEFT:
 		return true
 	default:
 		return false
