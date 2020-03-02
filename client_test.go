@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
@@ -171,11 +170,11 @@ func Test_readWriteSocket(t *testing.T) {
 		name        string
 		board       *board
 		rawBoardRes string
-		server      func(response string, done chan struct{}) func(w http.ResponseWriter, r *http.Request)
+		server      func(response string) func(w http.ResponseWriter, r *http.Request)
 		async       bool
 	}
 
-	workingServer := func(response string, done chan struct{}) func(w http.ResponseWriter, r *http.Request) {
+	workingServer := func(response string) func(w http.ResponseWriter, r *http.Request) {
 		return func(w http.ResponseWriter, r *http.Request) {
 			upgrader := websocket.Upgrader{}
 			c, err := upgrader.Upgrade(w, r, nil)
@@ -184,26 +183,19 @@ func Test_readWriteSocket(t *testing.T) {
 			}
 			defer c.Close()
 			// End on the second run
-			runCount := 0
 			for {
 				err = c.WriteMessage(websocket.TextMessage, []byte(response))
 				if err != nil {
 					break
 				}
-
 				_, _, err := c.ReadMessage()
 				if err != nil {
 					break
 				}
-
-				if runCount == 0 {
-					done <- struct{}{}
-					runCount++
-				}
 			}
 		}
 	}
-	brokenServer := func(response string, done chan struct{}) func(w http.ResponseWriter, r *http.Request) {
+	brokenServer := func(response string) func(w http.ResponseWriter, r *http.Request) {
 		return func(w http.ResponseWriter, r *http.Request) {
 			upgrader := websocket.Upgrader{}
 			c, err := upgrader.Upgrade(w, r, nil)
@@ -212,11 +204,10 @@ func Test_readWriteSocket(t *testing.T) {
 			}
 			c.Close()
 			// Fail on first try connect
-			done <- struct{}{}
 			return
 		}
 	}
-	badDataServer := func(response string, done chan struct{}) func(w http.ResponseWriter, r *http.Request) {
+	badDataServer := func(response string) func(w http.ResponseWriter, r *http.Request) {
 		return func(w http.ResponseWriter, r *http.Request) {
 			upgrader := websocket.Upgrader{}
 			c, err := upgrader.Upgrade(w, r, nil)
@@ -251,8 +242,7 @@ func Test_readWriteSocket(t *testing.T) {
 			rawBoardRes: "",
 			server:      brokenServer,
 			async:       false,
-		},
-		{
+		}, {
 			name:        "Server returns bad data",
 			board:       &board{},
 			rawBoardRes: "",
@@ -264,26 +254,28 @@ func Test_readWriteSocket(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Start mock server
-			readyToCheck := make(chan struct{})
-			server := httptest.NewServer(http.HandlerFunc(tt.server(testValidMsg, readyToCheck)))
+			server := httptest.NewServer(http.HandlerFunc(tt.server(testValidMsg)))
 			defer server.Close()
 			// Prepare connection
 			server.URL = strings.Replace(server.URL, "http", "ws", 1)
 			u, _ := url.Parse(server.URL)
 			conn, _ := getConnection(*u)
 			// Setup exit
-			done := make(chan struct{})
+			c := Communication{
+				Done:  make(chan struct{}),
+				Read:  make(chan struct{}),
+				Write: make(chan struct{}),
+			}
 
 			// In async case we wait unit server will allow us to check the result
 			if tt.async {
-				defer func() {
-					done <- struct{}{}
-				}()
-				go readWriteSocket(tt.board, conn, done)
-				<-readyToCheck
+				go readWriteSocket(tt.board, conn, c)
+				<-c.Read
+				c.Write <- struct{}{}
+				c.Done <- struct{}{}
 				// In sync case we run readWriteSocket synchronously and don't need to use extra mechanisms
 			} else {
-				readWriteSocket(tt.board, conn, done)
+				readWriteSocket(tt.board, conn, c)
 			}
 
 			assert.Equal(t, tt.rawBoardRes, tt.board.rawBoard)
@@ -296,12 +288,12 @@ func Test_StartGame(t *testing.T) {
 		name                string
 		browserUrl          string
 		boardRepresentation string
-		server              func(response string, done chan struct{}) func(w http.ResponseWriter, r *http.Request)
+		server              func(response string) func(w http.ResponseWriter, r *http.Request)
 		async               bool
 		panicValue          string
 	}
 
-	workingServer := func(response string, done chan struct{}) func(w http.ResponseWriter, r *http.Request) {
+	workingServer := func(response string) func(w http.ResponseWriter, r *http.Request) {
 		return func(w http.ResponseWriter, r *http.Request) {
 			upgrader := websocket.Upgrader{}
 			c, err := upgrader.Upgrade(w, r, nil)
@@ -310,13 +302,11 @@ func Test_StartGame(t *testing.T) {
 			}
 			defer c.Close()
 			// End on the second run
-			runCount := 0
 			for {
 				err = c.WriteMessage(websocket.TextMessage, []byte(response))
 				if err != nil {
 					break
 				}
-
 				_, msg, err := c.ReadMessage()
 				if len(msg) != 0 {
 					switch Action(msg) {
@@ -326,11 +316,6 @@ func Test_StartGame(t *testing.T) {
 				}
 				if err != nil {
 					break
-				}
-
-				if runCount == 0 {
-					done <- struct{}{}
-					runCount++
 				}
 			}
 		}
@@ -358,11 +343,10 @@ func Test_StartGame(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			readyToCheck := make(chan struct{})
 			if tt.server != nil {
 				gameProtocol = "ws"
 				// Start mock server
-				server := httptest.NewServer(http.HandlerFunc(tt.server(testValidMsg, readyToCheck)))
+				server := httptest.NewServer(http.HandlerFunc(tt.server(testValidMsg)))
 				defer server.Close()
 				// Prepare connection
 				server.URL = strings.Replace(server.URL, "http", "ws", 1)
@@ -371,17 +355,20 @@ func Test_StartGame(t *testing.T) {
 			}
 
 			var game Game
-			var done chan struct{}
+			var c Communication
 			// Setup exit
 			if tt.async {
 				defer func() {
-					done <- struct{}{}
+
 				}()
-				game, done = StartGame(tt.browserUrl)
-				<-readyToCheck
-				assert.Equal(t, tt.boardRepresentation, game.Show())
+				game, c = StartGame(tt.browserUrl)
+				<-c.Read
 				game.Move(ACT)
-				time.Sleep(time.Second * 1)
+				c.Write <- struct{}{}
+				assert.Equal(t, tt.boardRepresentation, game.Show())
+				<-c.Read
+				c.Write <- struct{}{}
+				c.Done <- struct{}{}
 				assert.NotEqual(t, tt.boardRepresentation, game.Show()) // bomberman changed to bomb
 			} else {
 				assert.PanicsWithValue(t, tt.panicValue, func() { StartGame(tt.browserUrl) })

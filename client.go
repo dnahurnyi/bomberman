@@ -3,14 +3,12 @@ package bomberman
 import (
 	"errors"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"log"
 	"net/url"
 	"os"
 	"strings"
 	"sync"
-	"time"
-
-	"github.com/gorilla/websocket"
 )
 
 var stopPtr = STOP
@@ -149,32 +147,40 @@ func createURL(browserURL string) (url.URL, error) {
 	return u, nil
 }
 
+type Communication struct {
+	Done  chan struct{}
+	Read  chan struct{}
+	Write chan struct{}
+}
+
 // readWriteSocket reads socket (that should send a message once per second)
 // and responds with move from board command
-func readWriteSocket(brd *board, conn *websocket.Conn, done chan struct{}) {
+func readWriteSocket(brd *board, conn *websocket.Conn, c Communication) {
 	for {
 		select {
-		case <-done:
+		case <-c.Done:
 			log.Println("Client closed connection")
 			return
 		default:
 			_, message, err := conn.ReadMessage()
 			if err != nil {
 				log.Println("Server closed connection, err:", err)
-				close(done)
+				close(c.Done)
 				return
 			}
 			err = updateBoard(string(message), brd)
 			if err != nil {
 				log.Println("Invalid message from server, err:", err)
-				close(done)
+				close(c.Done)
 				return
 			}
-			time.Sleep(time.Millisecond * 500) // 0.5 second to think what to respond
+			c.Read <- struct{}{} // Make a signal to the client that it's time to make a move
+			<-c.Write            // Wait for client response
+			//time.Sleep(time.Millisecond * 500) // 0.5 second to think what to respond
 			move := brd.getAction()
 			if err := conn.WriteMessage(websocket.TextMessage, []byte(move)); err != nil {
 				log.Println("Failed to write command to the game server, err: ", err)
-				close(done)
+				close(c.Done)
 				return
 			}
 		}
@@ -183,7 +189,7 @@ func readWriteSocket(brd *board, conn *websocket.Conn, done chan struct{}) {
 
 // StartGame creates connection to the game and returns game interface to play and channel to close the connection.
 // Game will be played without command from client, default action is STOP
-func StartGame(browserURL string) (Game, chan struct{}) {
+func StartGame(browserURL string) (Game, Communication) {
 	u, err := createURL(browserURL)
 	if err != nil {
 		log.Panicln("Failed to create valid game url, err: ", err)
@@ -194,11 +200,15 @@ func StartGame(browserURL string) (Game, chan struct{}) {
 		log.Panicln("Failed to create connection to game, err: ", err)
 	}
 
-	done := make(chan struct{})
+	c := Communication{
+		Done:  make(chan struct{}),
+		Read:  make(chan struct{}),
+		Write: make(chan struct{}),
+	}
 	brd := &board{}
 
 	// Constantly read data from socket
-	go readWriteSocket(brd, conn, done)
+	go readWriteSocket(brd, conn, c)
 
-	return brd, done
+	return brd, c
 }
