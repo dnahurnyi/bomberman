@@ -8,7 +8,7 @@ To install this package run:
 
 And import github.com/dnahurnyi/bomberman to your bot
 
-Use next code snippet to try this client with keyboard:
+Use next code snippet to try this client:
 ```
 package main
 
