@@ -5,6 +5,7 @@ Check details at: https://dojorena.io/codenjoy-contest/resources/help/bomberman.
 
 To install this package run:
  > `go get github.com/dnahurnyi/bomberman`
+
 And import github.com/dnahurnyi/bomberman to your bot
 
 Use next code snippet to try this client with keyboard:
