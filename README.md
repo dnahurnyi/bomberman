@@ -1,6 +1,6 @@
 # bomberman client
 Client for the bomberman game
-[![codecov.io Code Coverage](https://img.shields.io/codecov/c/github/dwyl/hapi-auth-jwt2.svg?maxAge=2592000)](https://codecov.io/github/dnahurnyi/bomberman?branch=master)
+[![codecov](https://codecov.io/gh/dnahurnyi/bomberman/branch/master/graph/badge.svg)](https://codecov.io/gh/dnahurnyi/bomberman)
 
 Check details at: https://dojorena.io/codenjoy-contest/resources/help/bomberman.html
 
