@@ -24,9 +24,6 @@ jobs:
             dep ensure
         fi
 
-    - name: Test
-      run: go test ./...
-      
     - name: Cover
       run: |
         go test -race -coverprofile=coverage.txt -covermode=atomic
