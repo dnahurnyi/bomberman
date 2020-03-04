@@ -1,6 +1,6 @@
-# bomberman client
+# bomberman client [![codecov](https://codecov.io/gh/dnahurnyi/bomberman/branch/master/graph/badge.svg)](https://codecov.io/gh/dnahurnyi/bomberman)
 Client for the bomberman game
-[![codecov](https://codecov.io/gh/dnahurnyi/bomberman/branch/master/graph/badge.svg)](https://codecov.io/gh/dnahurnyi/bomberman)
+
 
 Check details at: https://dojorena.io/codenjoy-contest/resources/help/bomberman.html
 
