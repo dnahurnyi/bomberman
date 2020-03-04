@@ -28,6 +28,5 @@ jobs:
       run: |
         go test -coverprofile=coverage.txt -covermode=atomic
         export CODECOV_TOKEN="b06cb58e-f5b0-4e5c-b786-bdb310b1f419"
-        -t "b06cb58e-f5b0-4e5c-b786-bdb310b1f419"
         bash <(curl -s https://codecov.io/bash)
       
